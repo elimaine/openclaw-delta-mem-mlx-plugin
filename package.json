@@ -1,6 +1,6 @@
 {
   "name": "@ofthetrees/openclaw-delta-mem-mlx",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "OpenClaw helper plugin for installing and connecting the delta-mem MLX sidecar on Apple Silicon.",
   "type": "module",
   "license": "MIT",
