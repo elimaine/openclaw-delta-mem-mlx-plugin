@@ -52,16 +52,19 @@ Existing install:
 npm run start-sidecar -- --root /path/to/delta-mem-mlx-sidecar-w-openclaw
 ```
 
-When OpenClaw is running inside Lima, configure the sidecar base URL as:
-
-```text
-http://host.lima.internal:8765
-```
-
-For host-only testing, use:
+Configure `sidecarBaseUrl` to whatever route OpenClaw has to the sidecar. If
+OpenClaw and the sidecar run on the same host, use:
 
 ```text
 http://127.0.0.1:8765
+```
+
+If OpenClaw runs in a VM/container and the sidecar runs on the host, use the
+host route provided by that environment. For example, some Lima setups expose
+the host as:
+
+```text
+http://host.lima.internal:8765
 ```
 
 ## OpenClaw Tools

@@ -79,7 +79,7 @@ async function main() {
     if (mode === "existing") {
       const existingRoot = await ask(rl, "Path to existing delta-mem repo", DEFAULT_ROOT);
       console.log("\nUse this OpenClaw sidecar base URL once it is running:");
-      console.log("http://host.lima.internal:8765");
+      console.log("Set sidecarBaseUrl to whatever route OpenClaw has to the sidecar, for example http://127.0.0.1:8765 when same-host.");
       console.log("\nExisting sidecar path:");
       console.log(existingRoot);
       return;

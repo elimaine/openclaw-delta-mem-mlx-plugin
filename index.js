@@ -2,7 +2,7 @@ import os from "node:os";
 import { Type } from "@sinclair/typebox";
 import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
-const DEFAULT_BASE_URL = "http://host.lima.internal:8765";
+const DEFAULT_BASE_URL = "http://127.0.0.1:8765";
 const DEFAULT_MODEL_ID = "qwen2.5-0.5b-mlx-test";
 const DEFAULT_SESSION_KEY = "agent:<agent-id>:<session-id>";
 
@@ -100,7 +100,7 @@ export default definePluginEntry({
       parameters: Type.Object({
         sidecarBaseUrl: Type.Optional(Type.String({
           default: DEFAULT_BASE_URL,
-          description: "Sidecar base URL without /v1."
+          description: "Reachable sidecar base URL without /v1."
         }))
       }),
       async execute(_id, params) {
@@ -142,7 +142,7 @@ export default definePluginEntry({
       parameters: Type.Object({
         sidecarBaseUrl: Type.Optional(Type.String({
           default: DEFAULT_BASE_URL,
-          description: "Sidecar base URL without /v1."
+          description: "Reachable sidecar base URL without /v1."
         })),
         modelId: Type.Optional(Type.String({
           default: DEFAULT_MODEL_ID,

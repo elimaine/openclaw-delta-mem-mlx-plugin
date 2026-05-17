@@ -10,8 +10,8 @@
     "properties": {
       "sidecarBaseUrl": {
         "type": "string",
-        "default": "http://host.lima.internal:8765",
-        "description": "Base URL for the running delta-mem sidecar, without the /v1 suffix."
+        "default": "http://127.0.0.1:8765",
+        "description": "Reachable base URL for the running delta-mem sidecar, without the /v1 suffix. Set this to whatever route OpenClaw has to the sidecar."
       },
       "modelId": {
         "type": "string",
@@ -61,7 +61,7 @@
   "uiHints": {
     "sidecarBaseUrl": {
       "label": "Sidecar base URL",
-      "placeholder": "http://host.lima.internal:8765"
+      "placeholder": "http://127.0.0.1:8765"
     },
     "installMode": {
       "label": "Install mode"
