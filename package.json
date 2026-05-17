@@ -1,0 +1,58 @@
+{
+  "name": "@ofthetrees/openclaw-delta-mem-mlx",
+  "version": "0.1.0",
+  "description": "OpenClaw helper plugin for installing and connecting the delta-mem MLX sidecar on Apple Silicon.",
+  "type": "module",
+  "license": "MIT",
+  "homepage": "https://github.com/elimaine/openclaw-delta-mem-mlx-plugin",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/elimaine/openclaw-delta-mem-mlx-plugin.git"
+  },
+  "keywords": [
+    "openclaw",
+    "plugin",
+    "mlx",
+    "apple-silicon",
+    "delta-mem",
+    "local-llm"
+  ],
+  "scripts": {
+    "check": "node --check index.js && node --check scripts/install-sidecar.mjs && node --check scripts/start-sidecar.mjs",
+    "install-sidecar": "node scripts/install-sidecar.mjs",
+    "start-sidecar": "node scripts/start-sidecar.mjs"
+  },
+  "files": [
+    "index.js",
+    "openclaw.plugin.json",
+    "README.md",
+    "scripts/*.mjs"
+  ],
+  "dependencies": {
+    "@sinclair/typebox": "^0.34.0"
+  },
+  "peerDependencies": {
+    "openclaw": ">=2026.3.24-beta.2"
+  },
+  "peerDependenciesMeta": {
+    "openclaw": {
+      "optional": true
+    }
+  },
+  "openclaw": {
+    "extensions": [
+      "./index.js"
+    ],
+    "compat": {
+      "pluginApi": ">=2026.3.24-beta.2",
+      "minGatewayVersion": "2026.3.24-beta.2"
+    },
+    "build": {
+      "openclawVersion": "2026.3.24-beta.2",
+      "pluginSdkVersion": "2026.3.24-beta.2"
+    },
+    "install": {
+      "minHostVersion": "2026.3.24-beta.2"
+    }
+  }
+}

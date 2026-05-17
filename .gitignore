@@ -1,0 +1,22 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+.env
+.env.*
+.DS_Store
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local sidecar/model artifacts
+.sidecar/
+models/
+adapters/
+state/
+*.safetensors
+*.gguf
+*.pt
+*.pth
+*.npz

@@ -1,0 +1,73 @@
+{
+  "id": "delta-mem-mlx",
+  "name": "Delta-Mem MLX",
+  "version": "0.1.0",
+  "description": "Apple Silicon helper plugin for connecting OpenClaw to a local delta-mem MLX sidecar.",
+  "enabledByDefaultOnPlatforms": ["darwin"],
+  "configSchema": {
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+      "sidecarBaseUrl": {
+        "type": "string",
+        "default": "http://host.lima.internal:8765",
+        "description": "Base URL for the running delta-mem sidecar, without the /v1 suffix."
+      },
+      "modelId": {
+        "type": "string",
+        "default": "qwen2.5-0.5b-mlx-test",
+        "description": "Model id exposed by the sidecar."
+      },
+      "sessionKeyTemplate": {
+        "type": "string",
+        "default": "agent:<agent-id>:<session-id>",
+        "description": "Template for X-OpenClaw-Session-Key."
+      },
+      "sidecarRoot": {
+        "type": "string",
+        "description": "Optional existing checkout/install path for the delta-mem sidecar."
+      },
+      "managedInstallRoot": {
+        "type": "string",
+        "description": "Optional directory where the helper installer cloned the sidecar."
+      },
+      "installMode": {
+        "type": "string",
+        "enum": ["external", "managed"],
+        "default": "external",
+        "description": "external means the user manages the sidecar; managed means this plugin's helper scripts manage it."
+      },
+      "allowManagedDownloads": {
+        "type": "boolean",
+        "default": false,
+        "description": "When true, setup helpers may download public Hugging Face model artifacts after explicit user confirmation."
+      }
+    }
+  },
+  "contracts": {
+    "tools": [
+      "delta_mem_mlx_status",
+      "delta_mem_mlx_provider_config"
+    ]
+  },
+  "toolMetadata": {
+    "delta_mem_mlx_status": {
+      "optional": true
+    },
+    "delta_mem_mlx_provider_config": {
+      "optional": true
+    }
+  },
+  "uiHints": {
+    "sidecarBaseUrl": {
+      "label": "Sidecar base URL",
+      "placeholder": "http://host.lima.internal:8765"
+    },
+    "installMode": {
+      "label": "Install mode"
+    },
+    "allowManagedDownloads": {
+      "label": "Allow managed public model downloads"
+    }
+  }
+}
