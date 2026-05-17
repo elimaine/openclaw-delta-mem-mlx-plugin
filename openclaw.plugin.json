@@ -1,7 +1,7 @@
 {
   "id": "delta-mem-mlx",
   "name": "Delta-Mem MLX",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Apple Silicon helper plugin for connecting OpenClaw to a local delta-mem MLX sidecar.",
   "enabledByDefaultOnPlatforms": ["darwin"],
   "configSchema": {
