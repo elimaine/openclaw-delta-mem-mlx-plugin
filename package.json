@@ -20,6 +20,7 @@
   "scripts": {
     "check": "node --check index.js && node --check scripts/install-sidecar.mjs && node --check scripts/start-sidecar.mjs",
     "install-sidecar": "node scripts/install-sidecar.mjs",
+    "install-sidecar-only": "node scripts/install-sidecar.mjs --no-start",
     "start-sidecar": "node scripts/start-sidecar.mjs"
   },
   "files": [

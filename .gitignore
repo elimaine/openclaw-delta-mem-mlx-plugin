@@ -12,6 +12,7 @@ pnpm-debug.log*
 
 # Local sidecar/model artifacts
 .sidecar/
+delta-mem-mlx-sidecar/
 models/
 adapters/
 state/

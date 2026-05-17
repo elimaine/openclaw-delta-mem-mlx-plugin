@@ -21,6 +21,14 @@ label while setting `transportProtocol: "openai-chat-completions"` and endpoint
 `/v1/chat/completions`. The important memory-routing contract is the stable
 `X-OpenClaw-Session-Key` header.
 
+The emitted provider config also requests attention-state lookup by default:
+QMD `vsearch`, queried from the outgoing message, with up to six snippets. That
+setting is a request to OpenClaw's provider layer. The sidecar accepts retrieved
+snippets as `attention_state`, `attentionState`, `delta_attention_state`,
+or `X-Delta-Attention-State`; when snippets arrive, it preloads them through
+the same per-session δ-state before generating the real assistant response. The
+goal is attention shaping, not direct fact parroting.
+
 ## Install
 
 Local linked install:
@@ -44,13 +52,57 @@ Managed install:
 npm run install-sidecar
 ```
 
-The script checks assumptions first. If the host is not macOS arm64, or Python 3.11 is missing, it offers `abort` by default.
+The script checks assumptions first. If the host is not macOS arm64, or Python 3.11 is missing, it offers `abort` by default. A completed managed install starts the sidecar automatically and waits for `/health`.
+
+Install without starting:
+
+```sh
+npm run install-sidecar-only
+```
+
+Non-interactive install:
+
+```sh
+npm run install-sidecar -- --mode clone --root ~/.openclaw/delta-mem-mlx-sidecar --model-preset qwen3-delta --download-model yes
+```
+
+Model presets:
+
+- `qwen3-delta`: default compatible public δ-mem path, `mlx-community/Qwen3-4B-Instruct-2507-4bit` plus the upstream `declare-lab/delta-mem_qwen3_4b-instruct` adapter converted locally to MLX.
+- `smoke`: small toy runtime, `mlx-community/Qwen2.5-0.5B-Instruct-4bit`, exposed as `qwen2.5-0.5b-mlx-test`.
+- `custom`: user-supplied MLX model path and optional adapter directory.
+
+Downloads are gated. The installer asks before running `hf download`, even for the default smoke model. Custom adapter runs check Apple Silicon memory and the known released δ-mem adapter/backbone compatibility; incompatible combinations abort unless explicitly approved.
+The Qwen3 δ preset validates that `delta_mem_config.json` and `delta_mem_adapter_mlx.npz` are present before startup, so a partial adapter snapshot fails early with a clear message instead of producing a later HTTP 500.
+
+Examples:
+
+```sh
+npm run install-sidecar -- --mode clone --model-preset smoke --download-model no
+npm run install-sidecar -- --mode clone --model-preset qwen3-delta --download-model yes
+npm run install-sidecar -- --mode clone --model-preset custom --model-path mlx-community/Qwen3-4B-Instruct-2507-4bit --adapter-dir /path/to/adapter
+```
 
 Existing install:
 
 ```sh
 npm run start-sidecar -- --root /path/to/delta-mem-mlx-sidecar-w-openclaw
 ```
+
+Start with the sidecar-local QMD attention-state fallback:
+
+```sh
+npm run start-sidecar -- \
+  --root /path/to/delta-mem-mlx-sidecar-w-openclaw \
+  --attention-state-source qmd \
+  --qmd-mode vsearch \
+  --qmd-limit 6
+```
+
+This is a fallback for OpenClaw builds that do not yet pass an explicit
+`attention_state` request field. If QMD is missing, times out, or exits nonzero,
+the sidecar still answers normally and reports
+`X-Delta-Attention-State-Count: 0`.
 
 Configure `sidecarBaseUrl` to whatever route OpenClaw has to the sidecar. If
 OpenClaw and the sidecar run on the same host, use:
@@ -72,7 +124,38 @@ http://host.lima.internal:8765
 The plugin registers two optional tools:
 
 - `delta_mem_mlx_status`: checks host assumptions and sidecar health.
-- `delta_mem_mlx_provider_config`: generates the model-provider config block with a stable `X-OpenClaw-Session-Key`.
+- `delta_mem_mlx_provider_config`: generates the model-provider config block with a stable `X-OpenClaw-Session-Key` and QMD `vsearch` attention-state defaults.
+
+## OpenClaw Provider Hook
+
+Best behavior is for OpenClaw to retrieve QMD state before the provider call and
+send it to the sidecar outside the visible prompt:
+
+```diff
+ const body = {
+   model,
+   messages,
+   temperature,
+   max_tokens: maxTokens
+ };
++const query = latestUserText(messages);
++const snippets = await qmd.vsearch(query, { limit: 6 });
++body.attention_state = snippets.map((item) => ({
++  text: item.text || item.content || item.snippet,
++  source: item.source || "qmd:vsearch",
++  score: item.score
++})).filter((item) => item.text);
+ const headers = {
+   Authorization: `Bearer ${apiKey}`,
+   "Content-Type": "application/json",
+   "X-OpenClaw-Session-Key": sessionKey
+ };
+```
+
+Verify the hook by checking the sidecar response headers:
+`X-Delta-Attention-State-Count` should be greater than `0`, and
+`X-Delta-Attention-State-Source` should be `request`. The sidecar method above
+will instead report `qmd`.
 
 ## Benchmarks
 
