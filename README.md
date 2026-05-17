@@ -1,25 +1,34 @@
 # Delta-Mem MLX for OpenClaw
 
-This OpenClaw plugin connects agents to a local Apple Silicon δ-mem sidecar: an
-OpenAI-compatible chat-completions service that runs MLX models and can preload
-retrieved memory into a compact neural state before each response.
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![OpenClaw Plugin](https://img.shields.io/badge/OpenClaw-plugin-111827)](https://openclaw.ai)
+[![Apple Silicon](https://img.shields.io/badge/platform-Apple%20Silicon-0f766e)](#requirements)
 
-The exciting part is that this is not just another context-injection plugin.
-δ-mem changes the attention path of a frozen model with a small online memory
-state. That means an agent can be shaped by prior session state without stuffing
-every remembered fact into the visible prompt. In local tests, the base model
-consistently improved with the δ-mem adapter attached, while richer OpenClaw
-memory-preload experiments are still being tuned.
+Give OpenClaw agents a local Apple Silicon memory sidecar.
 
-The current public stack is:
+This plugin connects OpenClaw to a local δ-mem MLX sidecar: an OpenAI-compatible
+chat-completions service that runs MLX models and can preload retrieved memory
+into a compact neural state before generation. It is for people running local
+agents on macOS who want memory behavior that is more interesting than simply
+pasting old context into the prompt.
 
-- OpenClaw plugin: model-provider config, health checks, and sidecar helpers.
-- FastAPI sidecar: OpenAI-compatible `/v1/chat/completions` endpoint.
-- MLX / mlx-lm: Apple Silicon native inference.
-- Qwen3 4B MLX backbone: `mlx-community/Qwen3-4B-Instruct-2507-4bit`.
-- Converted δ-mem adapter: `ofthetrees/delta-mem-qwen3-4b-instruct-mlx-adapter`.
-- Optional QMD lookup: retrieved snippets can be passed as `attention_state` for
-  δ-state preloading instead of visible prompt context.
+δ-mem is exciting because it changes how attention is shaped in a frozen model.
+Instead of fine-tuning a new model or appending a long transcript, the sidecar
+keeps a small per-session memory state and applies it through the model's
+attention path. In local tests, the Qwen3 4B backbone improved consistently when
+the δ-mem adapter was attached; OpenClaw-specific memory preload experiments are
+still being tuned and benchmarked.
+
+## Stack
+
+| Layer | What it uses |
+|---|---|
+| Agent runtime | OpenClaw model provider config |
+| Sidecar API | FastAPI, OpenAI-compatible `/v1/chat/completions` |
+| Inference | MLX / mlx-lm on Apple Silicon |
+| Default backbone | `mlx-community/Qwen3-4B-Instruct-2507-4bit` |
+| δ-mem adapter | `ofthetrees/delta-mem-qwen3-4b-instruct-mlx-adapter` |
+| Optional retrieval | QMD `vsearch` snippets passed as `attention_state` |
 
 Sidecar and benchmark repo:
 
@@ -29,46 +38,51 @@ https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw
 
 https://arxiv.org/abs/2605.12357
 
-## What This Plugin Does
+## Requirements
 
-- Checks whether the host looks like Apple Silicon.
-- Checks the sidecar `/health` endpoint.
-- Emits an OpenClaw model-provider config for the sidecar.
-- Adds the stable session header needed for per-session δ-state.
-- Requests QMD-backed attention-state lookup by default when OpenClaw supports
-  that provider hook.
-- Provides helper scripts to clone, install, and start the public sidecar.
+| Component | Minimum | Notes |
+|---|---|---|
+| Host | macOS on Apple Silicon | MLX is the intended local runtime |
+| Python | 3.11+ | Used by the sidecar |
+| Node | Current LTS | Used by plugin helper scripts |
+| OpenClaw | `2026.3.24-beta.2` or newer | Required for plugin install/use |
+| Storage | Several GB | Model downloads are gated and explicit |
+| Hugging Face | Network access | Needed for model/adapter downloads |
 
-It does not silently download model weights. The installer asks before running
-`hf download`, and users can skip managed install entirely if they already have a
-sidecar running.
+The plugin can still emit provider config for an already-running sidecar. Managed
+install is optional.
 
-## How It Works
+## Install
 
-OpenClaw talks to the sidecar as an OpenAI-compatible chat-completions provider:
-
-- `baseUrl`: sidecar `/v1` root
-- `transportProtocol`: `openai-chat-completions`
-- `endpoint`: `/v1/chat/completions`
-- stable header: `X-OpenClaw-Session-Key`
-
-When retrieved memory is available, the sidecar accepts it as `attention_state`,
-`attentionState`, `delta_attention_state`, or `X-Delta-Attention-State`. It then
-warms the same per-session δ-state before generating the real assistant answer.
-The goal is attention shaping, not direct fact parroting.
-
-## Install From ClawHub
+From ClawHub:
 
 ```sh
 openclaw plugins install clawhub:@elimaine/openclaw-delta-mem-mlx
 ```
 
-Local linked install:
+From GitHub:
 
 ```sh
 git clone https://github.com/elimaine/openclaw-delta-mem-mlx-plugin.git
 openclaw plugins install -l ./openclaw-delta-mem-mlx-plugin
 ```
+
+## Quick Start
+
+Check whether the sidecar route is reachable:
+
+```sh
+curl -fsS http://127.0.0.1:8765/health
+```
+
+Then use the plugin inside OpenClaw:
+
+- Human path: ask OpenClaw to run `delta_mem_mlx_status`, then
+  `delta_mem_mlx_provider_config`.
+- Agent path: call `delta_mem_mlx_provider_config` with
+  `sidecarBaseUrl: "http://127.0.0.1:8765"` and
+  `modelId: "delta-mem-qwen3-4b-mlx"`, then add the returned provider block to
+  the model configuration.
 
 ## Sidecar Setup
 
@@ -78,9 +92,8 @@ Managed install:
 npm run install-sidecar
 ```
 
-The script checks assumptions first. If the host is not macOS arm64, or Python
-3.11 is missing, it offers `abort` by default. A completed managed install
-starts the sidecar automatically and waits for `/health`.
+The installer checks platform assumptions first. It asks before downloading
+model artifacts and starts the sidecar only after a completed managed install.
 
 Install without starting:
 
@@ -88,32 +101,13 @@ Install without starting:
 npm run install-sidecar-only
 ```
 
-Non-interactive install:
-
-```sh
-npm run install-sidecar -- --mode clone --root ~/.openclaw/delta-mem-mlx-sidecar --model-preset qwen3-delta --download-model yes
-```
-
-Model presets:
-
-- `qwen3-delta`: default compatible public δ-mem path,
-  `mlx-community/Qwen3-4B-Instruct-2507-4bit` plus the upstream
-  `declare-lab/delta-mem_qwen3_4b-instruct` adapter converted locally to MLX.
-- `smoke`: small toy runtime, `mlx-community/Qwen2.5-0.5B-Instruct-4bit`,
-  exposed as `qwen2.5-0.5b-mlx-test`.
-- `custom`: user-supplied MLX model path and optional adapter directory.
-
-Downloads are gated. The Qwen3 δ preset validates that
-`delta_mem_config.json` and `delta_mem_adapter_mlx.npz` are present before
-startup, so a partial adapter snapshot fails early with a clear message.
-
-Existing sidecar:
+Start an existing sidecar checkout:
 
 ```sh
 npm run start-sidecar -- --root /path/to/delta-mem-mlx-sidecar-w-openclaw
 ```
 
-Start with the sidecar-local QMD attention-state fallback:
+Use the QMD fallback when OpenClaw is not yet passing `attention_state` itself:
 
 ```sh
 npm run start-sidecar -- \
@@ -126,34 +120,52 @@ npm run start-sidecar -- \
 If QMD is missing, times out, or exits nonzero, the sidecar still answers
 normally and reports `X-Delta-Attention-State-Count: 0`.
 
-## Routing
+## Model Presets
 
-Configure `sidecarBaseUrl` to whatever route OpenClaw has to the sidecar.
+| Preset | Purpose |
+|---|---|
+| `qwen3-delta` | Qwen3 4B MLX backbone plus converted δ-mem adapter |
+| `smoke` | Small Qwen2.5 MLX model for cheap setup checks |
+| `custom` | User-supplied MLX model and optional adapter directory |
 
-Same host:
+The Qwen3 δ preset validates that `delta_mem_config.json` and
+`delta_mem_adapter_mlx.npz` exist before startup, so partial adapter downloads
+fail early with a clear error.
 
-```text
-http://127.0.0.1:8765
-```
+## How Memory Reaches The Model
 
-VM/container to host:
+OpenClaw calls the sidecar like a normal OpenAI-compatible provider:
 
-```text
-http://<host-route>:8765
-```
+- `baseUrl`: sidecar `/v1` root
+- `transportProtocol`: `openai-chat-completions`
+- `endpoint`: `/v1/chat/completions`
+- stable session header: `X-OpenClaw-Session-Key`
 
-## OpenClaw Tools
+Retrieved memory should not be appended to the visible chat unless the operator
+explicitly wants that behavior. The sidecar accepts hidden memory-shaping input
+as:
 
-The plugin registers two optional tools:
+- request body: `attention_state`, `attentionState`, or `delta_attention_state`
+- request header: `X-Delta-Attention-State`
 
-- `delta_mem_mlx_status`: checks host assumptions and sidecar health.
-- `delta_mem_mlx_provider_config`: generates the provider config block with a
-  stable `X-OpenClaw-Session-Key` and QMD `vsearch` attention-state defaults.
+The sidecar then preloads those snippets into the per-session δ-state before the
+real assistant response. This is attention shaping, not guaranteed verbatim
+recall.
 
-## Provider Hook
+## Agent Integration Notes
 
-Best behavior is for OpenClaw to retrieve QMD state before the provider call and
-send it to the sidecar outside the visible prompt:
+Agents configuring this plugin should preserve these invariants:
+
+- Use one stable `X-OpenClaw-Session-Key` per logical agent/session.
+- Route to `/v1/chat/completions`, not legacy completions.
+- Keep QMD snippets in `attention_state`; do not copy them into user-visible
+  prompt text unless explicitly requested.
+- Verify integration with `X-Delta-Attention-State-Count` and
+  `X-Delta-Attention-State-Source`.
+- Treat install/download actions as operator-approved; do not silently fetch
+  model weights.
+
+Minimal provider hook:
 
 ```diff
  const body = {
@@ -169,28 +181,42 @@ send it to the sidecar outside the visible prompt:
 +  source: item.source || "qmd:vsearch",
 +  score: item.score
 +})).filter((item) => item.text);
- const headers = {
-   Authorization: `Bearer ${apiKey}`,
-   "Content-Type": "application/json",
-   "X-OpenClaw-Session-Key": sessionKey
- };
 ```
-
-Verify the hook by checking response headers:
-
-- `X-Delta-Attention-State-Count` greater than `0`
-- `X-Delta-Attention-State-Source: request`
-
-The sidecar-local QMD fallback reports `X-Delta-Attention-State-Source: qmd`
-instead.
 
 ## Benchmarks
 
-Current benchmark notes live in the sidecar wiki:
+Current findings live in the sidecar wiki:
 
 https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw/blob/main/wiki/Benchmark-Findings.md
 
-The strongest OpenClaw-shaped QMD preload tests improved from `0.5625` plain to
-`0.7292` δ-mem (`1.30x`) at `1.48x` to `1.63x` probe latency, using the older
-lenient scorer. The stricter OpenClaw-16 replay showed weaker exact-recall
-recovery (`+0.0391`) with effectively flat latency (`1.01x`).
+High-level summary:
+
+| Test shape | Result |
+|---|---|
+| Qwen3 4B + δ-mem adapter | Consistent response-quality lift over the plain backbone |
+| Strongest OpenClaw-shaped QMD preload tests | `0.5625` plain to `0.7292` δ-mem, about `1.30x` |
+| Stricter OpenClaw-16 replay | Small exact-recall recovery, `+0.0391` absolute |
+| Latency | Usually slower with memory enabled; exact ratio depends on path |
+
+These are early local benchmarks, not a claim that the plugin perfectly recalls
+session history. The practical goal is to measure when δ-state improves agent
+behavior enough to justify the latency and setup cost.
+
+## When Not To Use This
+
+- You are not on Apple Silicon and need an efficient local runtime today.
+- You want guaranteed transcript recall rather than attention shaping.
+- You need a zero-setup hosted model provider.
+- You cannot allocate disk space for local model artifacts.
+
+## Documentation
+
+- Sidecar repo: https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw
+- Benchmark findings: https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw/blob/main/wiki/Benchmark-Findings.md
+- δ-mem paper: https://arxiv.org/abs/2605.12357
+- Upstream adapter: https://huggingface.co/declare-lab/delta-mem_qwen3_4b-instruct
+- MLX adapter artifact: https://huggingface.co/ofthetrees/delta-mem-qwen3-4b-instruct-mlx-adapter
+
+## License
+
+[MIT](LICENSE)
