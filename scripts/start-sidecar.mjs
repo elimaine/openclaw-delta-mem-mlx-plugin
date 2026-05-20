@@ -4,7 +4,7 @@ import path from "node:path";
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 
-const DEFAULT_ROOT = path.join(os.homedir(), ".delta-mem", "delta-mem-mlx");
+const DEFAULT_ROOT = path.join(os.homedir(), ".openclaw", "delta-mem-mlx-sidecar");
 const DEFAULT_MODEL_PRESET = "qwen3-delta";
 const MODEL_PRESETS = {
   smoke: {
@@ -34,6 +34,13 @@ const modelPath = readArg("model-path", process.env.DELTA_MEM_MODEL_PATH || mode
 const modelId = readArg("model-id", process.env.DELTA_MEM_MODEL_ID || modelPreset.modelId);
 const defaultAdapterDir = modelPreset.adapterDirName ? path.join(root, "adapters", modelPreset.adapterDirName) : "";
 const adapterDir = readArg("adapter-dir", process.env.DELTA_MEM_ADAPTER_DIR || defaultAdapterDir);
+const attentionStateSource = readArg("attention-state-source", process.env.DELTA_MEM_ATTENTION_STATE_SOURCE || "");
+const qmdBin = readArg("qmd-bin", process.env.DELTA_MEM_QMD_BIN || "");
+const qmdMode = readArg("qmd-mode", process.env.DELTA_MEM_QMD_MODE || "");
+const qmdIndex = readArg("qmd-index", process.env.DELTA_MEM_QMD_INDEX || "");
+const qmdLimit = readArg("qmd-limit", process.env.DELTA_MEM_QMD_LIMIT || "");
+const qmdTimeoutSeconds = readArg("qmd-timeout-seconds", process.env.DELTA_MEM_QMD_TIMEOUT_SECONDS || "");
+const qmdArgs = readArg("qmd-args", process.env.DELTA_MEM_QMD_ARGS || "");
 const sidecarDir = path.join(root, "delta-mem-sidecar");
 const python = path.join(sidecarDir, ".venv", "bin", "python");
 
@@ -57,10 +64,22 @@ if (adapterDir) {
   env.DELTA_MEM_ADAPTER_DIR = adapterDir;
 }
 
+if (attentionStateSource) env.DELTA_MEM_ATTENTION_STATE_SOURCE = attentionStateSource;
+if (qmdBin) env.DELTA_MEM_QMD_BIN = qmdBin;
+if (qmdMode) env.DELTA_MEM_QMD_MODE = qmdMode;
+if (qmdIndex) env.DELTA_MEM_QMD_INDEX = qmdIndex;
+if (qmdLimit) env.DELTA_MEM_QMD_LIMIT = qmdLimit;
+if (qmdTimeoutSeconds) env.DELTA_MEM_QMD_TIMEOUT_SECONDS = qmdTimeoutSeconds;
+if (qmdArgs) env.DELTA_MEM_QMD_ARGS = qmdArgs;
+
 console.log(`Starting delta-mem MLX sidecar from ${sidecarDir}`);
 console.log(`Listening on ${host}:${port}`);
 console.log(`Model path: ${modelPath}`);
 if (adapterDir) console.log(`Adapter dir: ${adapterDir}`);
+if (env.DELTA_MEM_ATTENTION_STATE_SOURCE) {
+  console.log(`Attention-state fallback: ${env.DELTA_MEM_ATTENTION_STATE_SOURCE}`);
+  console.log(`QMD command: ${env.DELTA_MEM_QMD_BIN || "qmd"} ${env.DELTA_MEM_QMD_MODE || "vsearch"}`);
+}
 console.log("This assumes macOS on Apple Silicon with the MLX extras installed.");
 
 const child = spawn(python, [

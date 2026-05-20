@@ -4,6 +4,11 @@ import { definePluginEntry } from "openclaw/plugin-sdk/plugin-entry";
 
 const DEFAULT_BASE_URL = "http://127.0.0.1:8765";
 const DEFAULT_MODEL_ID = "delta-mem-qwen3-4b-mlx";
+const DEFAULT_SESSION_KEY = "agent:<agent-id>:<session-id>";
+const DEFAULT_ATTENTION_ADAPTER = "qmd";
+const DEFAULT_ATTENTION_MODE = "vsearch";
+const DEFAULT_ATTENTION_QUERY_SOURCE = "outgoing-message";
+const DEFAULT_ATTENTION_LIMIT = 6;
 
 function normalizeBaseUrl(value) {
   return String(value || DEFAULT_BASE_URL).replace(/\/+$/, "");
@@ -11,13 +16,35 @@ function normalizeBaseUrl(value) {
 
 function providerConfig({
   baseUrl,
-  modelId
+  modelId,
+  sessionKeyTemplate,
+  attentionStateEnabled,
+  attentionAdapter,
+  attentionMode,
+  attentionQuerySource,
+  attentionLimit
 }) {
   const cleanBaseUrl = normalizeBaseUrl(baseUrl);
   const model = modelId || DEFAULT_MODEL_ID;
+  const sessionKey = sessionKeyTemplate || DEFAULT_SESSION_KEY;
+  const contextInjection = {
+    sessionContext: {
+      enabled: false,
+      source: "openclaw-session-context"
+    },
+    attentionState: {
+      enabled: attentionStateEnabled !== false,
+      adapter: attentionAdapter || DEFAULT_ATTENTION_ADAPTER,
+      mode: attentionMode || DEFAULT_ATTENTION_MODE,
+      querySource: attentionQuerySource || DEFAULT_ATTENTION_QUERY_SOURCE,
+      fallbackMode: "none",
+      limit: attentionLimit ?? DEFAULT_ATTENTION_LIMIT
+    }
+  };
   const providerParams = {
     transportProtocol: "openai-chat-completions",
-    endpoint: "/v1/chat/completions"
+    endpoint: "/v1/chat/completions",
+    contextInjection
   };
   return {
     models: {
@@ -29,6 +56,9 @@ function providerConfig({
           api: "openai-completions",
           request: {
             allowPrivateNetwork: true
+          },
+          headers: {
+            "X-OpenClaw-Session-Key": sessionKey
           },
           params: providerParams,
           models: [
@@ -48,7 +78,11 @@ function providerConfig({
               },
               params: {
                 experimental: true,
+                requiredSessionHeader: "X-OpenClaw-Session-Key",
                 ...providerParams
+              },
+              headers: {
+                "X-OpenClaw-Session-Key": sessionKey
               }
             }
           ]
@@ -142,11 +176,42 @@ export default definePluginEntry({
           default: DEFAULT_MODEL_ID,
           description: "Model id exposed by the sidecar."
         })),
+        sessionKeyTemplate: Type.Optional(Type.String({
+          default: DEFAULT_SESSION_KEY,
+          description: "Stable X-OpenClaw-Session-Key template."
+        })),
+        attentionStateEnabled: Type.Optional(Type.Boolean({
+          default: true,
+          description: "Request QMD attention-state lookup before each outgoing message."
+        })),
+        attentionAdapter: Type.Optional(Type.String({
+          default: DEFAULT_ATTENTION_ADAPTER,
+          description: "Attention lookup adapter name."
+        })),
+        attentionMode: Type.Optional(Type.String({
+          default: DEFAULT_ATTENTION_MODE,
+          description: "Attention lookup mode. Default is QMD vector search."
+        })),
+        attentionQuerySource: Type.Optional(Type.String({
+          default: DEFAULT_ATTENTION_QUERY_SOURCE,
+          description: "Message text OpenClaw should use as the QMD lookup query."
+        })),
+        attentionLimit: Type.Optional(Type.Number({
+          default: DEFAULT_ATTENTION_LIMIT,
+          minimum: 1,
+          description: "Maximum retrieved attention snippets to pass to the sidecar."
+        }))
       }),
       async execute(_id, params) {
         const config = providerConfig({
           baseUrl: params?.sidecarBaseUrl,
-          modelId: params?.modelId
+          modelId: params?.modelId,
+          sessionKeyTemplate: params?.sessionKeyTemplate,
+          attentionStateEnabled: params?.attentionStateEnabled,
+          attentionAdapter: params?.attentionAdapter,
+          attentionMode: params?.attentionMode,
+          attentionQuerySource: params?.attentionQuerySource,
+          attentionLimit: params?.attentionLimit
         });
         return {
           content: [

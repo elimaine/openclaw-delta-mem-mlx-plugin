@@ -18,6 +18,36 @@
         "default": "delta-mem-qwen3-4b-mlx",
         "description": "Model id exposed by the sidecar."
       },
+      "sessionKeyTemplate": {
+        "type": "string",
+        "default": "agent:<agent-id>:<session-id>",
+        "description": "Template for X-OpenClaw-Session-Key."
+      },
+      "attentionStateEnabled": {
+        "type": "boolean",
+        "default": true,
+        "description": "When true, request QMD attention-state lookup before each outgoing message."
+      },
+      "attentionAdapter": {
+        "type": "string",
+        "default": "qmd",
+        "description": "Attention lookup adapter name."
+      },
+      "attentionMode": {
+        "type": "string",
+        "default": "vsearch",
+        "description": "Attention lookup mode. Default is QMD vector search."
+      },
+      "attentionQuerySource": {
+        "type": "string",
+        "default": "outgoing-message",
+        "description": "Message text OpenClaw should use as the QMD lookup query."
+      },
+      "attentionLimit": {
+        "type": "number",
+        "default": 6,
+        "description": "Maximum retrieved attention snippets to pass to the sidecar."
+      },
       "sidecarRoot": {
         "type": "string",
         "description": "Optional existing checkout/install path for the delta-mem sidecar."
