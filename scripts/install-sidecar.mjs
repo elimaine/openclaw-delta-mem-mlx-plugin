@@ -7,8 +7,8 @@ import os from "node:os";
 import path from "node:path";
 import { spawn, spawnSync } from "node:child_process";
 
-const REPO_URL = "https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw.git";
-const DEFAULT_ROOT = path.join(os.homedir(), ".openclaw", "delta-mem-mlx-sidecar");
+const REPO_URL = "https://github.com/elimaine/delta-mem-mlx.git";
+const DEFAULT_ROOT = path.join(os.homedir(), ".delta-mem", "delta-mem-mlx");
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = "8765";
 const DEFAULT_MODEL_PRESET = "qwen3-delta";
@@ -231,7 +231,7 @@ function downloadModelArtifacts(root, modelConfig) {
 }
 
 async function main() {
-  console.log("Delta-Mem MLX sidecar installer for OpenClaw");
+  console.log("Delta-Mem MLX sidecar installer");
   console.log("Target platform: macOS on Apple Silicon. The MLX runtime is not intended for Linux/Windows hosts.");
 
   const platformOk = process.platform === "darwin";
@@ -246,7 +246,7 @@ async function main() {
   if (missing.length > 0) {
     console.log("\nAssumption check failed:");
     for (const item of missing) console.log(`- ${item}`);
-    console.log("\nYou can bail out now, install the MLX sidecar elsewhere, then configure OpenClaw with that sidecar URL.");
+    console.log("\nYou can bail out now and install the MLX sidecar elsewhere.");
   }
 
   const rl = createInterface({ input, output });
@@ -284,8 +284,8 @@ async function main() {
 
     if (mode === "existing") {
       const existingRoot = getArg("root") || await ask(rl, "Path to existing delta-mem repo", DEFAULT_ROOT);
-      console.log("\nUse this OpenClaw sidecar base URL once it is running:");
-      console.log("Set sidecarBaseUrl to whatever route OpenClaw has to the sidecar, for example http://127.0.0.1:8765 when same-host.");
+      console.log("\nUse this sidecar base URL once it is running:");
+      console.log("Set sidecarBaseUrl to the route that can reach the sidecar, for example http://127.0.0.1:8765 when same-host.");
       console.log("\nExisting sidecar path:");
       console.log(existingRoot);
       const modelConfig = await resolveModelConfig(rl, existingRoot);
