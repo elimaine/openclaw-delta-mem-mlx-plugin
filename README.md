@@ -19,6 +19,18 @@ attention path. In local tests, the Qwen3 4B backbone improved consistently when
 the δ-mem adapter was attached; OpenClaw-specific memory preload experiments are
 still being tuned and benchmarked.
 
+## Where this stands (November 2026)
+
+Not maintained since May 2026. It was written against OpenClaw's spring
+2026 plugin API, which has changed since, so expect to port it before it
+loads. The memory results behind it were small local runs, not paper-grade
+(see the sidecar's `wiki/Benchmark-Findings.md`). A starting point only.
+
+For memory in OpenClaw today use the built-in Markdown memory,
+https://docs.openclaw.ai/concepts/memory, or the Mem0 plugin,
+https://github.com/mem0ai/mem0. For local MLX serving see the alternatives
+listed in the sidecar repo's README.
+
 ## Stack
 
 | Layer | What it uses |
@@ -32,7 +44,7 @@ still being tuned and benchmarked.
 
 Sidecar and benchmark repo:
 
-https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw
+https://github.com/elimaine/delta-mem-mlx-sidecar
 
 δ-mem paper:
 
@@ -104,14 +116,14 @@ npm run install-sidecar-only
 Start an existing sidecar checkout:
 
 ```sh
-npm run start-sidecar -- --root /path/to/delta-mem-mlx-sidecar-w-openclaw
+npm run start-sidecar -- --root /path/to/delta-mem-mlx-sidecar
 ```
 
 Use the QMD fallback when OpenClaw is not yet passing `attention_state` itself:
 
 ```sh
 npm run start-sidecar -- \
-  --root /path/to/delta-mem-mlx-sidecar-w-openclaw \
+  --root /path/to/delta-mem-mlx-sidecar \
   --attention-state-source qmd \
   --qmd-mode vsearch \
   --qmd-limit 6
@@ -187,7 +199,7 @@ Minimal provider hook:
 
 Current findings live in the sidecar wiki:
 
-https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw/blob/main/wiki/Benchmark-Findings.md
+https://github.com/elimaine/delta-mem-mlx-sidecar/blob/main/wiki/Benchmark-Findings.md
 
 High-level summary:
 
@@ -211,8 +223,8 @@ behavior enough to justify the latency and setup cost.
 
 ## Documentation
 
-- Sidecar repo: https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw
-- Benchmark findings: https://github.com/elimaine/delta-mem-mlx-sidecar-w-openclaw/blob/main/wiki/Benchmark-Findings.md
+- Sidecar repo: https://github.com/elimaine/delta-mem-mlx-sidecar
+- Benchmark findings: https://github.com/elimaine/delta-mem-mlx-sidecar/blob/main/wiki/Benchmark-Findings.md
 - δ-mem paper: https://arxiv.org/abs/2605.12357
 - Upstream adapter: https://huggingface.co/declare-lab/delta-mem_qwen3_4b-instruct
 - MLX adapter artifact: https://huggingface.co/ofthetrees/delta-mem-qwen3-4b-instruct-mlx-adapter
