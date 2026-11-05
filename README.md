@@ -19,17 +19,22 @@ attention path. In local tests, the Qwen3 4B backbone improved consistently when
 the δ-mem adapter was attached; OpenClaw-specific memory preload experiments are
 still being tuned and benchmarked.
 
-## Where this stands (November 2026)
+## Status (November 2026)
 
-Not maintained since May 2026. It was written against OpenClaw's spring
-2026 plugin API, which has changed since, so expect to port it before it
-loads. The memory results behind it were small local runs, not paper-grade
-(see the sidecar's `wiki/Benchmark-Findings.md`). A starting point only.
+This plugin wires an OpenClaw agent to the local δ-mem MLX sidecar as a
+model provider, with optional QMD retrieval passed in as `attention_state`.
+It worked end to end on OpenClaw's spring 2026 releases.
 
-For memory in OpenClaw today use the built-in Markdown memory,
-https://docs.openclaw.ai/concepts/memory, or the Mem0 plugin,
-https://github.com/mem0ai/mem0. For local MLX serving see the alternatives
-listed in the sidecar repo's README.
+Know before you install: development paused in May 2026 and OpenClaw's
+plugin contracts have changed since, so expect to port the provider wiring
+before it loads. The memory results it builds on are small local runs,
+described in the sidecar's `wiki/Benchmark-Findings.md`.
+
+Issues and pull requests are welcome; replies may be slow.
+
+Related: OpenClaw's built-in memory, https://docs.openclaw.ai/concepts/memory;
+the Mem0 plugin, https://github.com/mem0ai/mem0; and the sidecar README
+for MLX serving alternatives.
 
 ## Stack
 
